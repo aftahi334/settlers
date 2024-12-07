@@ -1,13 +1,54 @@
-use crate::Player::White;
+use std::cmp::PartialEq;
+use std::collections::HashMap;
+
+static TEMPLATE: &str = "
+          BB * BB * BB * BB * BB * BB * BB
+          *   TTTT  *   TTTT  *   TTTT  *
+     BB * BB * BB * BB * BB * BB * BB * BB * BB
+     *   TTTT  *   TTTT  *   TTTT  *   TTTT  *
+BB * BB * BB * BB * BB * BB * BB * BB * BB * BB * BB
+*   TTTT  *   TTTT  *   TTTT  *   TTTT  *   TTTT  *
+BB * BB * BB * BB * BB * BB * BB * BB * BB * BB * BB
+     *   TTTT  *   TTTT  *   TTTT  *   TTTT  *
+     BB * BB * BB * BB * BB * BB * BB * BB * BB
+          *   TTTT  *   TTTT  *   TTTT  *
+          BB * BB * BB * BB * BB * BB * BB   ";
 
 #[derive(Debug)]
+#[derive(Copy)]
+#[derive(Clone)]
 enum Player {
     Red,
     Blue,
     White,
 }
 
+impl From<Player> for char {
+    fn from(player: Player) -> Self {
+        match player {
+            Player::Red => 'R',
+            Player::Blue => 'B',
+            Player::White => 'W',
+        }
+    }
+}
+
+impl TryFrom<char> for Player {
+    type Error = &'static str;
+
+    fn try_from(c: char) -> Result<Self, Self::Error> {
+        match c {
+            'R' => Ok(Player::Red),
+            'B' => Ok(Player::Blue),
+            'W' => Ok(Player::White),
+            _ => Err("Invalid character for Player"),
+        }
+    }
+}
+
+
 #[derive(Debug)]
+#[derive(Clone)]
 enum  TileKind {
     Grain,
     Wool,
@@ -15,6 +56,37 @@ enum  TileKind {
     Lumber,
     Ore,
     Nothing
+}
+
+
+impl From<TileKind> for char {
+    fn from(tile: TileKind) -> Self {
+        match tile {
+            TileKind::Grain => 'G',
+            TileKind::Wool => 'W',
+            TileKind::Brick => 'B',
+            TileKind::Lumber => 'L',
+            TileKind::Ore => 'O',
+            TileKind::Nothing => 'N',
+        }
+    }
+}
+
+
+impl TryFrom<char> for TileKind {
+    type Error = &'static str;
+
+    fn try_from(c: char) -> Result<Self, Self::Error> {
+        match c {
+            'G' => Ok(TileKind::Grain),
+            'W' => Ok(TileKind::Wool),
+            'B' => Ok(TileKind::Brick),
+            'L' => Ok(TileKind::Lumber),
+            'O' => Ok(TileKind::Ore),
+            'N' => Ok(TileKind::Nothing),
+            _ => Err("Invalid character for TileKind"),
+        }
+    }
 }
 
 
@@ -27,12 +99,36 @@ struct Tile {
 }
 
 #[derive(Debug)]
+#[derive(Copy)]
+#[derive(Clone)]
 enum BuildingKind {
     Settlement,
     City,
 }
 
+impl BuildingKind {
+    fn to_char(&self) -> char {
+        match self {
+            BuildingKind::Settlement => 'S',
+            BuildingKind::City => 'C',
+        }
+    }
+}
+
+impl TryFrom<char> for BuildingKind {
+    type Error = &'static str;
+    fn try_from(c: char) -> Result<Self, Self::Error> {
+        match c {
+            'S' => Ok(BuildingKind::Settlement),
+            'C' => Ok(BuildingKind::City),
+            _ => Err("Invalid character for BuildingKind"),
+        }
+    }
+}
+
 #[derive(Debug)]
+#[derive(Copy)]
+#[derive(Clone)]
 struct Building {
     id: IntersectionId,
     kind: BuildingKind,
@@ -48,6 +144,9 @@ struct Road {
 
 
 #[derive(Debug)]
+#[derive(Eq)]
+#[derive(PartialEq)]
+#[derive(Hash)]
 struct PathId(usize);
 
 #[derive(Debug)]
@@ -65,10 +164,14 @@ impl Intersection {
     }
 }
 
+const PATHS: usize = 72;
+const INTERSECTIONS: usize = 54;
+const TILES: usize = 19;
+
 struct Board {
-    paths: [Path; 72],
-    intersections: [Intersection; 54],
-    tiles: [Tile; 19]
+    paths: [Path; PATHS],
+    intersections: [Intersection; INTERSECTIONS],
+    tiles: [Tile; TILES]
 }
 
 impl Board {
@@ -213,6 +316,8 @@ impl Board {
     }
 }
 
+#[derive(Eq)]
+#[derive(PartialEq)]
 struct RubberId(usize);
 
 struct State {
@@ -221,7 +326,18 @@ struct State {
     rubber: RubberId,
 }
 
+struct Game {
+    board: Board,
+    state: State,
+}
+
+
 #[derive(Debug)]
+#[derive(Eq)]
+#[derive(PartialEq)]
+#[derive(Hash)]
+#[derive(Copy)]
+#[derive(Clone)]
 struct IntersectionId(usize);
 #[derive(Debug)]
 struct Path {
@@ -237,122 +353,268 @@ impl Path {
 }
 
 fn main() {
-    let tiles = [
-        Tile{ dice: 10, kind: TileKind::Ore},
-        Tile{ dice: 02, kind: TileKind::Wool},
-        Tile{ dice: 09, kind: TileKind::Lumber},
-        Tile{ dice: 12, kind: TileKind::Grain},
-        Tile{ dice: 06, kind: TileKind::Brick},
-        Tile{ dice: 04, kind: TileKind::Wool},
-        Tile{ dice: 10, kind: TileKind::Brick},
-        Tile{ dice: 09, kind: TileKind::Grain},
-        Tile{ dice: 11, kind: TileKind::Lumber},
-        Tile{ dice: 00, kind: TileKind::Nothing},
-        Tile{ dice: 03, kind: TileKind::Lumber},
-        Tile{ dice: 08, kind: TileKind::Ore},
-        Tile{ dice: 08, kind: TileKind::Lumber},
-        Tile{ dice: 03, kind: TileKind::Ore},
-        Tile{ dice: 04, kind: TileKind::Grain},
-        Tile{ dice: 05, kind: TileKind::Wool},
-        Tile{ dice: 05, kind: TileKind::Brick},
-        Tile{ dice: 06, kind: TileKind::Grain},
-        Tile{ dice: 11, kind: TileKind::Wool}];
-    let board = Board::new(tiles);
-
-    // let mut buildings = vec![
-    //     Building{
-    //         id: 10,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::Red,
-    //     },
-    //     Building{
-    //         id: 13,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::Blue,
-    //     },
-    //     Building{
-    //         id: 19,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::White,
-    //     },
-    //     Building{
-    //         id: 35,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::White,
-    //     },
-    //     Building{
-    //         id: 29,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::Red,
-    //     },
-    //     Building{
-    //         id: 40,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::Red,
-    //     },
-    //     Building{
-    //         id: 44,
-    //         kind: BuildingKind::Settlement,
-    //         player: Player::Red,
-    //     },
-    // ];
-    // 
-    // let roads = vec![
-    //     Road{ id: PathId(13), player: Player::Red },
-    //     Road{ id: 15, player: Player::Blue },
-    //     Road{ id: 37, player: Player::White },
-    //     Road{ id: 41, player: Player::Red },
-    //     Road{ id: 56, player: Player::Blue },
-    //     Road{ id: 52, player: Player::Blue },
-    // ];
-
-
-    let mut buildings: Vec<Building> = vec![];
-    for i in 0..board.intersections.len() {
-        buildings.push(Building{
-            id: IntersectionId(i),
-            kind: BuildingKind::Settlement,
-            player: Player::White,
-        })
-    }
-
-    let mut roads: Vec<Road> = vec![];
-    for i in 0..board.paths.len() {
-        roads.push(Road { id: PathId(i), player: White })
-    }
-
-
-    let state = State{
-        buildings,
-        roads,
-        rubber: RubberId(9),
-    };
-
-
-    print_board_state(board, state);
 }
 
-fn print_board_state(board: Board, state: State) {
-    /*
-        10    02    09
-          \RSR   \OSO
-    12    06    04    10
-      SW
-09    11    NO    03    08
-   \RSR              SW
-    08    03    04 |R 05
-       SB\B  SO\O  SB
-        05    06    11
+fn parse_board(board_str: String) -> Game {
+    let mut building_coordinates = vec![];
+    let mut tile_coordinates = vec![];
+    let mut road_coordinates = vec![];
+    for line in TEMPLATE.lines() {
+        let line = line.trim_end();
+        let mut building_line = vec![];
+        let mut tile_line = vec![];
+        let mut road_line = vec![];
+        let chars: Vec<char> = line.chars().clone().collect();
+        for (i, c) in chars.iter().enumerate() {
+            if *c == 'B' && chars.get(i + 1) == Some(&'B') {
+                building_line.push(i);
+            }
+            if *c == 'T' && chars.get(i + 1) == Some(&'T') && chars.get(i + 2) == Some(&'T') && chars.get(i + 3) == Some(&'T') {
+                tile_line.push(i);
+            }
 
-     */
-    println!("      SSSSSSSSS SSSS");
-    println!("        {:02}     {:02}     {:02}", board.tiles[0].dice, board.tiles[1].dice, board.tiles[2].dice);
-    println!("");
-    println!("    {:02}     {:02}     {:02}     {:02}", board.tiles[3].dice, board.tiles[4].dice, board.tiles[5].dice, board.tiles[6].dice);
-    println!("");
-    println!("{:02}     {:02}      {:02}     {:02}     {:02}", board.tiles[7].dice, board.tiles[8].dice, board.tiles[9].dice, board.tiles[10].dice, board.tiles[11].dice);
-    println!("");
-    println!("    {:02}     {:02}     {:02}     {:02}", board.tiles[12].dice, board.tiles[13].dice, board.tiles[14].dice, board.tiles[15].dice);
-    println!("");
-    println!("        {:02}     {:02}     {:02}", board.tiles[16].dice, board.tiles[17].dice, board.tiles[18].dice);
+            if *c == '*'  {
+                road_line.push(i);
+            }
+        }
+        building_coordinates.push(building_line);
+        tile_coordinates.push(tile_line);
+        road_coordinates.push(road_line);
+    }
+
+    assert_eq!(building_coordinates.iter().map(|c| c.len()).sum::<usize>(), INTERSECTIONS);
+    assert_eq!(tile_coordinates.iter().map(|t| t.len()).sum::<usize>(), TILES);
+
+    let mut id = 0;
+    let mut buildings: Vec<Building> = vec![];
+    for (i, line_coordinates) in building_coordinates.iter().enumerate() {
+        let chars: Vec<char> = board_str.lines().nth(i).unwrap().chars().clone().collect();
+        for coordinate in line_coordinates {
+            let first_char = chars[*coordinate];
+            let second_char = chars[coordinate + 1];
+            if first_char != 'o' {
+               let building = Building{
+                   id: IntersectionId(id),
+                   kind: match second_char {
+                       'C' => BuildingKind::City,
+                       'S' => BuildingKind::Settlement,
+                       _ => panic!("Invalid building type"),
+                   },
+                   player: match first_char {
+                       'R' => Player::Red,
+                       'B' => Player::Blue,
+                       'W' => Player::White,
+                       _ => panic!("Invalid building color"),
+                   },
+               };
+                buildings.push(building);
+            }
+            id += 1;
+        }
+    }
+
+
+    let mut id = 0;
+    let mut roads: Vec<Road> = vec![];
+    for (i, line_coordinates) in road_coordinates.iter().enumerate() {
+        let chars: Vec<char> = board_str.lines().nth(i).unwrap().chars().clone().collect();
+        for coordinate in line_coordinates {
+            let first_char = chars[*coordinate];
+            if first_char != '.' {
+                let road = Road{
+                    id: PathId(id),
+                    player: match first_char {
+                        'R' => Player::Red,
+                        'B' => Player::Blue,
+                        'W' => Player::White,
+                        _ => panic!("Invalid building color"),
+                    },
+                };
+                roads.push(road);
+            }
+            id += 1;
+        }
+    }
+
+
+    let mut tiles: Vec<Tile> = vec![];
+    for (i, line_coordinates) in tile_coordinates.iter().enumerate() {
+        let chars: Vec<char> = board_str.lines().nth(i).unwrap().chars().clone().collect();
+        for coordinate in line_coordinates {
+            let first_char = chars[*coordinate];
+            let second_char = chars[coordinate + 1];
+            let third_char = chars[coordinate + 2];
+            let fourth_char = chars[coordinate + 3];
+
+            let kind: TileKind = TileKind::try_from(third_char).unwrap();
+
+            let dice = format!("{}{}", first_char, second_char).parse::<u8>().expect("Invalid tile dice number");
+            tiles.push(Tile{ dice, kind });
+            id += 1;
+        }
+    }
+
+    let tiles1: [Tile; 19] = tiles.try_into().expect("The board has not exactly 19 tiles");
+    let board:  Board = Board::new(tiles1);
+
+    Game{ board,
+        state: State {
+        buildings,
+        roads,
+        rubber: RubberId(0),
+    } }
+}
+
+fn print_board_state(board: &Board, state: State) -> String {
+    let mut output  = TEMPLATE.to_string();
+    for tile in &board.tiles {
+        let kind = char::from(tile.kind.clone());
+        output = output.replacen("TTTT",  &format!("{:02}{} ", tile.dice, kind), 1);
+    }
+
+    let mut building_map = HashMap::new();
+    for  int in  state.buildings.iter() {
+        building_map.insert(&int.id, int);
+    }
+    
+    for i in 0..INTERSECTIONS {
+        let cell = match building_map.get(&IntersectionId(i)) {
+            None => { "oo".to_string() }
+            Some(int) => {
+                let player: char = int.player.into();
+                let kind = match int.kind {
+                    BuildingKind::Settlement =>{ "S".to_string() }
+                    BuildingKind::City => { "C".to_string() }
+                };
+                format!("{}{}", player, kind)
+            }
+        };
+        
+        output = output.replacen("BB", &cell, 1);
+    }
+
+    let mut road_map = HashMap::new();
+    for  int in  state.roads.iter() {
+        road_map.insert(&int.id, int);
+    }
+
+    for i in 0..PATHS {
+        let cell = match road_map.get(&PathId(i)) {
+            None => { ".".to_string() }
+            Some(int) => char::from(int.player).into(),
+        };
+
+        output = output.replacen("*", &cell, 1);
+    }
+    
+    output
+}
+
+
+
+#[cfg(test)] // Ensures the test code is compiled only in test mode
+mod tests {
+    use super::*; // Import the functions from the parent module
+    #[test]
+    fn test_parse1() {
+        let tiles = [
+            Tile { dice: 10, kind: TileKind::Ore },
+            Tile { dice: 02, kind: TileKind::Wool },
+            Tile { dice: 09, kind: TileKind::Lumber },
+            Tile { dice: 12, kind: TileKind::Grain },
+            Tile { dice: 06, kind: TileKind::Brick },
+            Tile { dice: 04, kind: TileKind::Wool },
+            Tile { dice: 10, kind: TileKind::Brick },
+            Tile { dice: 09, kind: TileKind::Grain },
+            Tile { dice: 11, kind: TileKind::Lumber },
+            Tile { dice: 00, kind: TileKind::Nothing },
+            Tile { dice: 03, kind: TileKind::Lumber },
+            Tile { dice: 08, kind: TileKind::Ore },
+            Tile { dice: 08, kind: TileKind::Lumber },
+            Tile { dice: 03, kind: TileKind::Ore },
+            Tile { dice: 04, kind: TileKind::Grain },
+            Tile { dice: 05, kind: TileKind::Wool },
+            Tile { dice: 05, kind: TileKind::Brick },
+            Tile { dice: 06, kind: TileKind::Grain },
+            Tile { dice: 11, kind: TileKind::Wool }];
+        let board = Board::new(tiles);
+
+        let buildings = vec![
+            Building {
+                id: IntersectionId(10),
+                kind: BuildingKind::Settlement,
+                player: Player::Red,
+            },
+            Building {
+                id: IntersectionId(13),
+                kind: BuildingKind::Settlement,
+                player: Player::Blue,
+            },
+            Building {
+                id: IntersectionId(19),
+                kind: BuildingKind::Settlement,
+                player: Player::White,
+            },
+            Building {
+                id: IntersectionId(35),
+                kind: BuildingKind::Settlement,
+                player: Player::White,
+            },
+            Building {
+                id: IntersectionId(29),
+                kind: BuildingKind::Settlement,
+                player: Player::Red,
+            },
+            Building {
+                id: IntersectionId(40),
+                kind: BuildingKind::Settlement,
+                player: Player::Red,
+            },
+            Building {
+                id: IntersectionId(44),
+                kind: BuildingKind::Settlement,
+                player: Player::Red,
+            },
+        ];
+
+        let roads = vec![
+            Road { id: PathId(13), player: Player::Red },
+            Road { id: PathId(15), player: Player::Blue },
+            Road { id: PathId(37), player: Player::White },
+            Road { id: PathId(41), player: Player::Red },
+            Road { id: PathId(56), player: Player::Blue },
+            Road { id: PathId(52), player: Player::Blue },
+        ];
+
+
+        // let mut buildings: Vec<Building> = vec![];
+        // for i in 0..board.intersections.len() {
+        //     buildings.push(Building{
+        //         id: IntersectionId(i),
+        //         kind: BuildingKind::Settlement,
+        //         player: Player::White,
+        //     })
+        // }
+
+        // let mut roads: Vec<Road> = vec![];
+        // for i in 0..board.paths.len() {
+        //     roads.push(Road { id: PathId(i), player: White })
+        // }
+
+
+        let state = State {
+            buildings,
+            roads,
+            rubber: RubberId(7),
+        };
+
+
+        let string1 = print_board_state(&board, state);
+        let game = parse_board(string1.clone());
+
+        let string2 = print_board_state(&game.board, game.state);
+        assert_eq!(string1, string2);
+        
+    }
+
 }
