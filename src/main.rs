@@ -1,7 +1,7 @@
-use std::cmp::PartialEq;
-use std::collections::HashMap;
+use std::cmp::{PartialEq};
+use std::collections::{HashMap, HashSet};
 
-static TEMPLATE: &str = "
+const TEMPLATE: &str = "
           BB * BB * BB * BB * BB * BB * BB
           *   TTTT  *   TTTT  *   TTTT  *
      BB * BB * BB * BB * BB * BB * BB * BB * BB
@@ -321,24 +321,51 @@ struct Game {
 }
 
 impl Game {
-    fn dfs(&self) {}
+    fn dfs(&self, node: usize, graph: &HashMap<usize, Vec<usize>>,  visited: &mut HashSet<usize>, longest: usize) -> (usize, usize) {
+        if visited.contains(&node) {
+            return (0, 0);
+        }
+        visited.insert(node);
+        let mut max1 = 0;
+        let mut max2 = 0;
+        for node2 in graph[&node].clone() {
+            let (height, _) = self.dfs(node2, graph, visited,  longest);
+            if max1 < height {
+                max2 = max1;
+                max1 = height;
+            } else if max2 < height {
+                max2 = height
+            }
+        }
+        let longest = if max1 + max2 > longest {
+            max1 + max2
+        } else {
+            longest
+        };
+        (max1 + 1, longest)
+    }
     pub(crate) fn longest_road(&self) {
-        let mut hashmap: HashMap<usize, Vec<usize>> = HashMap::new();
+        let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
         for road in &self.state.roads {
             if road.player == Player::White {
                 let Path(IntersectionId(a), IntersectionId(b)) = self.board.paths[road.id.0];
-                hashmap.entry(a).or_insert_with(Vec::new).push(b);
-                hashmap.entry(b).or_insert_with(Vec::new).push(a);
+                graph.entry(a).or_insert_with(Vec::new).push(b);
+                graph.entry(b).or_insert_with(Vec::new).push(a);
                 println!("{:?} {:?}", &road, self.board.paths[road.id.0])
             }
+
         }
-        println!("{:?}", hashmap);
+        let mut visited: HashSet<usize> = HashSet::new();
+        let depth = self.dfs(6, &graph, &mut visited, 0);
+
+        println!("{:?}", graph);
+        println!("{:?}", depth);
         // self.board.paths.
     }
 }
 
 impl TryFrom<String> for Game {
-    type Error = ();
+    type Error = &'static str;
 
     fn try_from(board_str: String) -> Result<Self, Self::Error> {
         let mut building_coordinates = vec![];
@@ -382,8 +409,8 @@ impl TryFrom<String> for Game {
                 if first_char != 'o' {
                     let building = Building{
                         id: IntersectionId(id),
-                        kind: second_char.try_into().unwrap(),
-                        player: first_char.try_into().unwrap(),
+                        kind: second_char.try_into()?,
+                        player: first_char.try_into()?,
                     };
                     buildings.push(building);
                 }
@@ -401,7 +428,7 @@ impl TryFrom<String> for Game {
                 if first_char != '.' {
                     let road = Road{
                         id: PathId(id),
-                        player: first_char.try_into().unwrap(),
+                        player: first_char.try_into()?,
                     };
                     roads.push(road);
                 }
@@ -424,7 +451,7 @@ impl TryFrom<String> for Game {
                 if fourth_char == '!' {
                     robber = Some(RobberId(id))
                 }
-                let kind: TileKind = TileKind::try_from(third_char).unwrap();
+                let kind: TileKind = TileKind::try_from(third_char)?;
 
                 let dice = format!("{}{}", first_char, second_char).parse::<u8>().expect("Invalid tile dice number");
                 tiles.push(Tile{ dice, kind });
