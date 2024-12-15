@@ -123,7 +123,7 @@ impl TryFrom<char> for BuildingKind {
 
 #[derive(Debug, Copy, Clone)]
 struct Building {
-    id: IntersectionId,
+    intersection_id: IntersectionId,
     kind: BuildingKind,
     player: Player
 }
@@ -320,8 +320,9 @@ struct Game {
     state: State,
 }
 
+
 impl Game {
-    fn dfs(&self, node: usize, graph: &HashMap<usize, Vec<usize>>,  visited: &mut HashSet<usize>, longest: usize) -> (usize, usize) {
+    fn dfs(&self, node: usize, graph: &HashMap<usize, Vec<usize>>, visited: &mut HashSet<usize>, longest: usize) -> (usize, usize) {
         if visited.contains(&node) {
             return (0, 0);
         }
@@ -329,7 +330,7 @@ impl Game {
         let mut max1 = 0;
         let mut max2 = 0;
         for node2 in graph[&node].clone() {
-            let (height, _) = self.dfs(node2, graph, visited,  longest);
+            let (height, _) = self.dfs(node2, graph, visited, longest);
             if max1 < height {
                 max2 = max1;
                 max1 = height;
@@ -344,24 +345,85 @@ impl Game {
         };
         (max1 + 1, longest)
     }
-    pub(crate) fn longest_road(&self) {
+    pub(crate) fn longest_road(&self, player: Player) -> usize {
+        let graph = self.road_graph(player);
+        let (_, road_length) = self.dfs(6, &graph, &mut HashSet::new(), 0);
+
+        road_length
+    }
+
+    fn road_graph(&self, player: Player) -> HashMap<usize, Vec<usize>> {
         let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
         for road in &self.state.roads {
-            if road.player == Player::White {
+            if road.player == player {
                 let Path(IntersectionId(a), IntersectionId(b)) = self.board.paths[road.id.0];
                 graph.entry(a).or_insert_with(Vec::new).push(b);
                 graph.entry(b).or_insert_with(Vec::new).push(a);
-                println!("{:?} {:?}", &road, self.board.paths[road.id.0])
+            }
+        }
+        graph
+    }
+
+    pub(crate) fn possible_building_intersections(&self, player: Player) -> HashSet<IntersectionId> {
+        let too_close_intersections= self.too_close_intersections();
+        let mut possible_building_intersections: HashSet<IntersectionId> = HashSet::new();
+        for road in self.state.roads.iter().filter(|road| road.player == player) {
+            let Path(intersection_a, intersection_b) =  self.board.paths[road.id.0];
+            if !too_close_intersections.contains(&intersection_a) {
+                possible_building_intersections.insert(intersection_a);
+            }
+            if !too_close_intersections.contains(&intersection_b) {
+                possible_building_intersections.insert(intersection_b);
+            }
+        }
+        possible_building_intersections
+    }
+
+    pub(crate) fn possible_road_paths(&self, player: Player) -> HashSet<Path> {
+        let graph = self.road_graph(player);
+        let mut leaf_possible: HashSet<usize> = HashSet::new();
+        let mut leaf_already_made: HashSet<usize> = HashSet::new();
+        for key in graph.keys() {
+            let values = graph.get(key).unwrap();
+            if values.len() == 1 {
+                leaf_already_made.insert(values[0]);
+                leaf_possible.insert(*key);
+            }
+        }
+
+        let mut possible_road_paths: HashSet<Path> = HashSet::new();
+        for path in self.board.paths.iter() {
+            let Path(IntersectionId(a), IntersectionId(b)) = path;
+            if leaf_possible.contains(a) && !leaf_already_made.contains(b) {
+                possible_road_paths.insert(path.clone());
             }
 
+            if leaf_possible.contains(b) && !leaf_already_made.contains(a) {
+                possible_road_paths.insert(path.clone());
+            }
         }
-        let mut visited: HashSet<usize> = HashSet::new();
-        let depth = self.dfs(6, &graph, &mut visited, 0);
-
-        println!("{:?}", graph);
-        println!("{:?}", depth);
-        // self.board.paths.
+        possible_road_paths
     }
+
+    pub(crate) fn too_close_intersections(&self) -> HashSet<IntersectionId> {
+        let mut too_close_intersections: HashSet<IntersectionId> = HashSet::new();
+        for building in self.state.buildings.iter() {
+            let Building{
+                intersection_id,
+                ..
+            } = building;
+
+            for path in  &self.board.intersections[intersection_id.0].paths {
+                let Path(intersection_a, intersection_b) = self.board.paths[path.0];
+                too_close_intersections.insert(intersection_a);
+                too_close_intersections.insert(intersection_b);
+
+            }
+        }
+        too_close_intersections
+    }
+
+
 }
 
 impl TryFrom<String> for Game {
@@ -408,7 +470,7 @@ impl TryFrom<String> for Game {
                 let second_char = chars[coordinate + 1];
                 if first_char != 'o' {
                     let building = Building{
-                        id: IntersectionId(id),
+                        intersection_id: IntersectionId(id),
                         kind: second_char.try_into()?,
                         player: first_char.try_into()?,
                     };
@@ -487,7 +549,7 @@ impl From<Game> for String {
 
         let mut building_map = HashMap::new();
         for  int in  game.state.buildings.iter() {
-            building_map.insert(&int.id, int);
+            building_map.insert(&int.intersection_id, int);
         }
 
         for i in 0..INTERSECTIONS {
@@ -526,7 +588,7 @@ impl From<Game> for String {
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 struct IntersectionId(usize);
-#[derive(Debug)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
 struct Path(IntersectionId, IntersectionId);
 
 
@@ -543,37 +605,37 @@ mod tests {
 
         let buildings = vec![
             Building {
-                id: IntersectionId(10),
+                intersection_id: IntersectionId(10),
                 kind: BuildingKind::Settlement,
                 player: Player::Red,
             },
             Building {
-                id: IntersectionId(13),
+                intersection_id: IntersectionId(13),
                 kind: BuildingKind::Settlement,
                 player: Player::Blue,
             },
             Building {
-                id: IntersectionId(19),
+                intersection_id: IntersectionId(19),
                 kind: BuildingKind::Settlement,
                 player: Player::White,
             },
             Building {
-                id: IntersectionId(35),
+                intersection_id: IntersectionId(35),
                 kind: BuildingKind::Settlement,
                 player: Player::White,
             },
             Building {
-                id: IntersectionId(29),
+                intersection_id: IntersectionId(29),
                 kind: BuildingKind::Settlement,
                 player: Player::Red,
             },
             Building {
-                id: IntersectionId(40),
+                intersection_id: IntersectionId(40),
                 kind: BuildingKind::Settlement,
                 player: Player::Red,
             },
             Building {
-                id: IntersectionId(44),
+                intersection_id: IntersectionId(44),
                 kind: BuildingKind::Settlement,
                 player: Player::Red,
             },
@@ -635,7 +697,7 @@ mod tests {
         let mut buildings: Vec<Building> = vec![];
         for i in 0..INTERSECTIONS {
             buildings.push(Building {
-                id: IntersectionId(i),
+                intersection_id: IntersectionId(i),
                 kind: BuildingKind::Settlement,
                 player: Player::White,
             })
@@ -667,19 +729,56 @@ mod tests {
     
     #[test]
     fn test_longest_road() {
-        let board = "
+        let game: Game = "
           oo . oo . oo . oo . oo W oo W oo
           .   10O   .   02W   .   09L   W
      oo . oo . oo . RS R oo . oo B BS W oo . oo
      .   12G   .   06B   .   04W   W   10B   .
-oo . oo . oo . WS . oo . oo . oo . oo W oo . oo . oo
+oo . oo . oo W WS . oo . oo . oo . oo W oo . oo . oo
 .   09G!  .   11L   .   00N   .   03L   W   08O   .
 oo . oo . RS R oo . oo . oo . oo . oo . WS . oo . oo
      .   08L   .   03O   .   04G   B   05W   .
      oo . oo . RS B oo . oo . oo . RS . oo . oo
           .   05B   .   06G   .   11W   .
-          oo . oo . oo . oo . oo . oo . oo".to_string();
-        let game: Game = board.clone().try_into().unwrap();
-        game.longest_road()
+          oo . oo . oo . oo . oo . oo . oo".to_string().try_into().unwrap();
+        assert_eq!(game.longest_road(Player::White), 7);
+    }
+
+    #[test]
+    fn test_possible_building_intersections() {
+        let game: Game = "
+          oo . oo . oo . oo . oo W oo W oo
+          .   10O   .   02W   .   09L   W
+     oo . oo . oo . RS R oo . oo B BS W oo . oo
+     .   12G   .   06B   .   04W   W   10B   .
+oo . oo . oo W WS . oo . oo . oo . oo W oo . oo . oo
+.   09G!  .   11L   .   00N   .   03L   W   08O   .
+oo . oo . RS R oo . oo . oo . oo . oo . WS W oo . oo
+     .   08L   .   03O   .   04G   B   05W   W
+     oo . oo . RS B oo . oo . oo . RS . oo . oo
+          .   05B   .   06G   .   11W   .
+          oo . oo . oo . oo . oo . oo . oo".to_string().try_into().unwrap();
+        let s: HashSet<IntersectionId> = vec![IntersectionId(46), IntersectionId(6), IntersectionId(4), IntersectionId(5)].into_iter().collect();
+         assert_eq!(game.possible_building_intersections(Player::White), s);
+    }
+
+
+    #[test]
+    fn test_possible_possible_road_paths() {
+        let game: Game = "
+          oo . oo . oo . oo . oo W oo W oo
+          .   10O   .   02W   .   09L   W
+     oo . oo . oo . RS R oo . oo B BS W oo . oo
+     .   12G   .   06B   .   04W   W   10B   .
+oo . oo . oo W WS . oo . oo . oo . oo W oo . oo . oo
+.   09G!  .   11L   .   00N   .   03L   W   08O   .
+oo . oo . RS R oo . oo . oo . oo . oo . WS W oo . oo
+     .   08L   .   03O   .   04G   B   05W   W
+     oo . oo . RS B oo . oo . oo . RS . oo . oo
+          .   05B   .   06G   .   11W   .
+          oo . oo . oo . oo . oo . oo . oo".to_string().try_into().unwrap();
+        let s: HashSet<Path> = vec![Path(IntersectionId(19), IntersectionId(20)), Path(IntersectionId(18), IntersectionId(29)), Path(IntersectionId(3), IntersectionId(4)), Path(IntersectionId(17), IntersectionId(18)), Path(IntersectionId(4), IntersectionId(12)), Path(IntersectionId(9), IntersectionId(19))].into_iter().collect();
+        assert_eq!(s, game.possible_road_paths(Player::White));
+
     }
 }
