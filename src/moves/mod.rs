@@ -1,3 +1,3 @@
 
 mod possible_moves;
-mod maximin;
+pub mod maximin;
