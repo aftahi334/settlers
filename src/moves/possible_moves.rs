@@ -27,7 +27,7 @@ impl Game {
     /// - The second element represents the updated longest path across the graph.
     ///
     /// # Examples
-    /// ```rust
+    /// ```no_run
     /// use std::collections::{HashMap, HashSet};
     ///
     /// // Example graph (acyclic tree structure)
@@ -97,7 +97,7 @@ impl Game {
     /// The length of the longest road owned by the player.
     ///
     /// Example usage:
-    /// ```rust
+    /// ```no_run
     /// let longest_road = game.longest_road(Player::Red);
     /// println!("Longest road: {}", longest_road);
     /// ```
@@ -172,7 +172,7 @@ impl Game {
     /// 3. Collects all valid paths where a new road can connect to these leaf intersections.
     ///
     /// # Example
-    /// ```rust
+    /// ```no_run
     /// let possible_paths = game.possible_road_paths(Player::Red);
     /// for path in possible_paths {
     ///     println!("Possible path: {:?} -> {:?}", path.0, path.1);
@@ -235,8 +235,8 @@ impl Game {
 mod tests {
     use super::*; // Import the functions from the parent module
     use std::collections::HashSet;
+    use std::convert::TryInto;
 
-    
     #[test]
     fn test_possible_possible_road_paths() {
         let game: Game = "

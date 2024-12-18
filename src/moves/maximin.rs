@@ -1,4 +1,8 @@
+use crate::game::Game;
 
-pub fn compute_best_move() {
-    
+impl Game {
+
+    pub fn compute_best_move() -> &'static str {
+        ""
+    }   
 }

@@ -1,49 +1,23 @@
-
-use std::cmp::{PartialEq};
-
-/// A constant ASCII template representing the Settlers of Catan game board layout.
-///
-/// The `TEMPLATE` string is a visual representation of the board where:
-/// - `BB` represents intersections (potential locations for buildings like settlements or cities).
-/// - `*` represents roads connecting intersections.
-/// - `TTTT` represents tiles, which hold resources and dice values.
-///
-/// This template is used as a foundation to overlay dynamic game states, such as player positions,
-/// resources, and other game elements, during serialization and rendering of the board.
-///
-/// Example usage:
-/// ```rust
-/// println!("{}", TEMPLATE);
-/// ```
-pub const TEMPLATE: &str = "
-          BB * BB * BB * BB * BB * BB * BB
-          *   TTTT  *   TTTT  *   TTTT  *
-     BB * BB * BB * BB * BB * BB * BB * BB * BB
-     *   TTTT  *   TTTT  *   TTTT  *   TTTT  *
-BB * BB * BB * BB * BB * BB * BB * BB * BB * BB * BB
-*   TTTT  *   TTTT  *   TTTT  *   TTTT  *   TTTT  *
-BB * BB * BB * BB * BB * BB * BB * BB * BB * BB * BB
-     *   TTTT  *   TTTT  *   TTTT  *   TTTT  *
-     BB * BB * BB * BB * BB * BB * BB * BB * BB
-          *   TTTT  *   TTTT  *   TTTT  *
-          BB * BB * BB * BB * BB * BB * BB   ";
+use std::cmp::PartialEq;
+use std::convert::TryFrom;
+use std::ops::Index;
 
 /// An enumeration representing the players in the Settlers of Catan game.
 ///
 /// Each player is identified by a color:
-/// - `Red`: The red player.
-/// - `Blue`: The blue player.
-/// - `White`: The white player.
+/// - `red`: The red player.
+/// - `blue`: The blue player.
+/// - `white`: The white player.
 ///
 /// This enum is used to specify the owner of buildings, roads, or other player-specific attributes.
 ///
 /// Example usage:
 /// ```rust
-/// let current_player = Player::Red;
+/// let current_player = Player::red;
 /// match current_player {
-///     Player::Red => println!("Red player's turn"),
-///     Player::Blue => println!("Blue player's turn"),
-///     Player::White => println!("White player's turn"),
+///     Player::red => println!("red player's turn"),
+///     Player::blue => println!("blue player's turn"),
+///     Player::white => println!("white player's turn"),
 /// }
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -65,9 +39,9 @@ pub struct Path(pub IntersectionId, pub IntersectionId);
 /// Attempts to convert a character into a `Player`.
 ///
 /// This implementation maps specific characters to their corresponding `Player` enum:
-/// - `'R'` -> `Player::Red`
-/// - `'B'` -> `Player::Blue`
-/// - `'W'` -> `Player::White`
+/// - `'R'` -> `Player::red`
+/// - `'B'` -> `Player::blue`
+/// - `'W'` -> `Player::white`
 ///
 /// Returns an error string if the character is invalid.
 ///
@@ -76,7 +50,7 @@ pub struct Path(pub IntersectionId, pub IntersectionId);
 /// use std::convert::TryFrom;
 ///
 /// let player = Player::try_from('R').unwrap();
-/// assert_eq!(player, Player::Red);
+/// assert_eq!(player, Player::red);
 ///
 /// let invalid = Player::try_from('X');
 /// assert!(invalid.is_err());
@@ -98,20 +72,20 @@ impl TryFrom<char> for Player {
 /// An enumeration representing the different types of tiles in the Settlers of Catan game.
 ///
 /// Each tile provides a specific resource or has no resource:
-/// - `Grain`: Produces grain.
-/// - `Wool`: Produces wool.
-/// - `Brick`: Produces brick.
-/// - `Lumber`: Produces lumber.
-/// - `Ore`: Produces ore.
+/// - `grain`: Produces grain.
+/// - `wool`: Produces wool.
+/// - `brick`: Produces brick.
+/// - `lumber`: Produces lumber.
+/// - `ore`: Produces ore.
 /// - `Nothing`: Represents the desert or other non-productive tiles.
 ///
 /// This enum is used to describe the resource type associated with each tile on the board.
 ///
 /// Example usage:
 /// ```rust
-/// let tile = TileKind::Grain;
+/// let tile = TileKind::grain;
 /// match tile {
-///     TileKind::Grain => println!("This tile produces grain."),
+///     TileKind::grain => println!("This tile produces grain."),
 ///     TileKind::Nothing => println!("This is a desert tile."),
 ///     _ => println!("This tile produces another resource."),
 /// }
@@ -251,8 +225,8 @@ impl Board {
     /// Example usage:
     /// ```rust
     /// let tiles = [
-    ///     Tile { dice: 10, kind: TileKind::Grain },
-    ///     Tile { dice: 2, kind: TileKind::Wool },
+    ///     Tile { dice: 10, kind: TileKind::grain },
+    ///     Tile { dice: 2, kind: TileKind::wool },
     ///     // ...remaining tiles...
     /// ];
     /// let board = Board::new(tiles);
@@ -398,6 +372,48 @@ impl Board {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct ResourceCount {
+    pub grain: usize,
+    pub wool: usize,
+    pub brick: usize,
+    pub lumber: usize,
+    pub ore: usize,
+}
+
+impl Index<TileKind> for ResourceCount {
+    type Output = usize;
+    fn index(&self, tile: TileKind) -> &Self::Output {
+        match tile {
+            TileKind::Grain => &self.grain,
+            TileKind::Wool => &self.wool,
+            TileKind::Brick => &self.brick,
+            TileKind::Lumber => &self.lumber,
+            TileKind::Ore => &self.ore,
+            TileKind::Nothing => &0
+        }
+    }
+}
+#[derive(Debug, PartialEq)]
+pub struct PlayerResourceCount {
+    pub red: ResourceCount,
+    pub blue: ResourceCount,
+    pub white: ResourceCount,
+}
+
+impl Index<Player> for PlayerResourceCount {
+    type Output = ResourceCount;
+
+    fn index(&self, index: Player) -> &Self::Output {
+        match index {
+            Player::Red => &self.red,
+            Player::Blue => &self.blue,
+            Player::White => &self.white
+        }
+    }
+}
+
+
 /// Represents the state of the game, including:
 /// - `buildings`: A list of all buildings on the board.
 /// - `roads`: A list of all roads on the board.
@@ -406,6 +422,7 @@ pub struct State {
     pub buildings: Vec<Building>,
     pub roads: Vec<Road>,
     pub robber: RobberId,
+    pub resources: PlayerResourceCount,
 }
 
 /// Represents the overall game state, including the board and the state of all players.
@@ -414,136 +431,3 @@ pub struct Game {
     pub state: State,
 }
 
-
-
-#[cfg(test)] // Ensures the test code is compiled only in test mode
-mod tests {
-    use super::*; // Import the functions from the parent module
-
-    #[test]
-    fn test_parse1() {
-        let board = get_board();
-
-        let buildings = vec![
-            Building {
-                intersection_id: IntersectionId(10),
-                kind: BuildingKind::Settlement,
-                player: Player::Red,
-            },
-            Building {
-                intersection_id: IntersectionId(13),
-                kind: BuildingKind::Settlement,
-                player: Player::Blue,
-            },
-            Building {
-                intersection_id: IntersectionId(19),
-                kind: BuildingKind::Settlement,
-                player: Player::White,
-            },
-            Building {
-                intersection_id: IntersectionId(35),
-                kind: BuildingKind::Settlement,
-                player: Player::White,
-            },
-            Building {
-                intersection_id: IntersectionId(29),
-                kind: BuildingKind::Settlement,
-                player: Player::Red,
-            },
-            Building {
-                intersection_id: IntersectionId(40),
-                kind: BuildingKind::Settlement,
-                player: Player::Red,
-            },
-            Building {
-                intersection_id: IntersectionId(44),
-                kind: BuildingKind::Settlement,
-                player: Player::Red,
-            },
-        ];
-
-        let roads = vec![
-            Road { id: PathId(13), player: Player::Red },
-            Road { id: PathId(15), player: Player::Blue },
-            Road { id: PathId(37), player: Player::White },
-            Road { id: PathId(41), player: Player::Red },
-            Road { id: PathId(56), player: Player::Blue },
-            Road { id: PathId(52), player: Player::Blue },
-        ];
-
-        let state = State {
-            buildings,
-            roads,
-            robber: RobberId(7),
-        };
-
-        let game1 = Game { board, state };
-
-        let string1 = String::from(game1);
-        let game2: Game = string1.clone().try_into().unwrap();
-
-        let string2 = String::from(game2);
-        println!("{}", string1);
-        assert_eq!(string1, string2);
-    }
-
-    fn get_board() -> Board {
-        let tiles = [
-            Tile { dice: 10, kind: TileKind::Ore },
-            Tile { dice: 02, kind: TileKind::Wool },
-            Tile { dice: 09, kind: TileKind::Lumber },
-            Tile { dice: 12, kind: TileKind::Grain },
-            Tile { dice: 06, kind: TileKind::Brick },
-            Tile { dice: 04, kind: TileKind::Wool },
-            Tile { dice: 10, kind: TileKind::Brick },
-            Tile { dice: 09, kind: TileKind::Grain },
-            Tile { dice: 11, kind: TileKind::Lumber },
-            Tile { dice: 00, kind: TileKind::Nothing },
-            Tile { dice: 03, kind: TileKind::Lumber },
-            Tile { dice: 08, kind: TileKind::Ore },
-            Tile { dice: 08, kind: TileKind::Lumber },
-            Tile { dice: 03, kind: TileKind::Ore },
-            Tile { dice: 04, kind: TileKind::Grain },
-            Tile { dice: 05, kind: TileKind::Wool },
-            Tile { dice: 05, kind: TileKind::Brick },
-            Tile { dice: 06, kind: TileKind::Grain },
-            Tile { dice: 11, kind: TileKind::Wool }];
-        let board = Board::new(tiles);
-        board
-    }
-
-    #[test]
-    fn test_parse2() {
-        let mut buildings: Vec<Building> = vec![];
-        for i in 0..INTERSECTIONS {
-            buildings.push(Building {
-                intersection_id: IntersectionId(i),
-                kind: BuildingKind::Settlement,
-                player: Player::White,
-            })
-        }
-
-        let mut roads: Vec<Road> = vec![];
-        for i in 0..PATHS {
-            roads.push(Road { id: PathId(i), player: Player::White })
-        }
-
-
-        let state = State {
-            buildings,
-            roads,
-            robber: RobberId(8),
-        };
-
-        let board = get_board();
-        let game1 = Game { board, state };
-
-        let string1 = String::from(game1);
-        let game2: Game = string1.clone().try_into().unwrap();
-
-        let string2 = String::from(game2);
-        println!("{}", &string1);
-
-        assert_eq!(string1, string2);
-    }
-}

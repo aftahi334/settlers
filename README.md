@@ -60,16 +60,16 @@ The AI module expects the game state as a JSON string. Example:
 ```json
 {
   "tiles": [
-    {"dice": 10, "kind": "Ore"},
-    {"dice": 2, "kind": "Wool"}
+    {"dice": 10, "kind": "ore"},
+    {"dice": 2, "kind": "wool"}
   ],
   "buildings": [
-    {"id": 10, "kind": "Settlement", "player": "Red"},
-    {"id": 13, "kind": "City", "player": "Blue"}
+    {"id": 10, "kind": "Settlement", "player": "red"},
+    {"id": 13, "kind": "City", "player": "blue"}
   ],
   "roads": [
-    {"id": 13, "player": "Red"},
-    {"id": 15, "player": "Blue"}
+    {"id": 13, "player": "red"},
+    {"id": 15, "player": "blue"}
   ],
   "robber": 7
 }
@@ -123,6 +123,13 @@ println!("AI suggests move: {}", next_move);
 3. **Test the Worker**:
    ```bash
    curl -X POST https://your-worker-url.workers.dev -d '{...}'
+   ```
+
+### Fastly Compute 
+
+1. Fastly Compute 
+   ```bash
+    fastly compute serve --verbose
    ```
 
 ## Roadmap
