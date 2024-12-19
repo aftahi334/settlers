@@ -1,6 +1,6 @@
 use std::cmp::PartialEq;
 use std::convert::TryFrom;
-use std::ops::Index;
+use crate::game::resources::PlayerResourceCount;
 
 /// An enumeration representing the players in the Settlers of Catan game.
 ///
@@ -371,48 +371,6 @@ impl Board {
         }
     }
 }
-
-#[derive(Debug, PartialEq)]
-pub struct ResourceCount {
-    pub grain: usize,
-    pub wool: usize,
-    pub brick: usize,
-    pub lumber: usize,
-    pub ore: usize,
-}
-
-impl Index<TileKind> for ResourceCount {
-    type Output = usize;
-    fn index(&self, tile: TileKind) -> &Self::Output {
-        match tile {
-            TileKind::Grain => &self.grain,
-            TileKind::Wool => &self.wool,
-            TileKind::Brick => &self.brick,
-            TileKind::Lumber => &self.lumber,
-            TileKind::Ore => &self.ore,
-            TileKind::Nothing => &0
-        }
-    }
-}
-#[derive(Debug, PartialEq)]
-pub struct PlayerResourceCount {
-    pub red: ResourceCount,
-    pub blue: ResourceCount,
-    pub white: ResourceCount,
-}
-
-impl Index<Player> for PlayerResourceCount {
-    type Output = ResourceCount;
-
-    fn index(&self, index: Player) -> &Self::Output {
-        match index {
-            Player::Red => &self.red,
-            Player::Blue => &self.blue,
-            Player::White => &self.white
-        }
-    }
-}
-
 
 /// Represents the state of the game, including:
 /// - `buildings`: A list of all buildings on the board.

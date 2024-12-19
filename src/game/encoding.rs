@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use crate::game::board::*;
+use crate::game::resources::{PlayerResourceCount, ResourceCount};
 
 /// A constant ASCII template representing the Settlers of Catan game board layout.
 ///
@@ -311,9 +312,9 @@ impl TryFrom<String> for Game {
             .collect();
 
         // G  W  B  L  O
-        let white = resource_lines[0].split_whitespace().skip(1).map(|s| s.parse::<usize>().unwrap()).collect::<Vec<_>>();
-        let red = resource_lines[1].split_whitespace().skip(1).map(|s| s.parse::<usize>().unwrap()).collect::<Vec<_>>();
-        let blue = resource_lines[2].split_whitespace().skip(1).map(|s| s.parse::<usize>().unwrap()).collect::<Vec<_>>();
+        let white = resource_lines[0].split_whitespace().skip(1).map(|s| s.parse::<i8>().unwrap()).collect::<Vec<_>>();
+        let red = resource_lines[1].split_whitespace().skip(1).map(|s| s.parse::<i8>().unwrap()).collect::<Vec<_>>();
+        let blue = resource_lines[2].split_whitespace().skip(1).map(|s| s.parse::<i8>().unwrap()).collect::<Vec<_>>();
         let board:  Board = Board::new(tiles.try_into().expect("The board has not exactly 19 tiles"));
 
         let resources = PlayerResourceCount{
